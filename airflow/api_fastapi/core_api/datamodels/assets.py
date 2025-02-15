@@ -19,10 +19,10 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from airflow.sdk.execution_time.secrets_masker import redact
 from pydantic import Field, field_validator
 
 from airflow.api_fastapi.core_api.base import BaseModel, StrictBaseModel
-from airflow.sdk.execution_time.secrets_masker import redact
 
 
 class DagScheduleAssetReference(StrictBaseModel):
@@ -49,6 +49,7 @@ class AssetResponse(BaseModel):
     name: str
     uri: str
     group: str
+    display_id: str = Field(validation_alias="id")
     extra: dict | None = None
     created_at: datetime
     updated_at: datetime
