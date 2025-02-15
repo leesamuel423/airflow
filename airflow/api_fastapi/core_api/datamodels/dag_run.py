@@ -20,7 +20,13 @@ from __future__ import annotations
 from datetime import datetime
 from enum import Enum
 
-from pydantic import AwareDatetime, Field, NonNegativeInt, model_validator
+from pydantic import (
+    AliasPath,
+    AwareDatetime,
+    Field,
+    NonNegativeInt,
+    model_validator,
+)
 
 from airflow.api_fastapi.core_api.base import BaseModel, StrictBaseModel
 from airflow.models import DagRun
@@ -56,6 +62,9 @@ class DAGRunResponse(BaseModel):
 
     dag_run_id: str = Field(validation_alias="run_id")
     dag_id: str
+    dag_display_name: str = Field(
+        validation_alias=AliasPath("dag_model", "dag_display_name")
+    )
     logical_date: datetime | None
     queued_at: datetime | None
     start_date: datetime | None
@@ -93,7 +102,9 @@ class TriggerDAGRunPostBody(StrictBaseModel):
 
     @model_validator(mode="after")
     def check_data_intervals(cls, values):
-        if (values.data_interval_start is None) != (values.data_interval_end is None):
+        if (values.data_interval_start is None) != (
+            values.data_interval_end is None
+        ):
             raise ValueError(
                 "Either both data_interval_start and data_interval_end must be provided or both must be None"
             )
@@ -103,7 +114,9 @@ class TriggerDAGRunPostBody(StrictBaseModel):
     def validate_dag_run_id(self):
         if not self.dag_run_id:
             self.dag_run_id = DagRun.generate_run_id(
-                run_type=DagRunType.MANUAL, logical_date=self.logical_date, run_after=self.run_after
+                run_type=DagRunType.MANUAL,
+                logical_date=self.logical_date,
+                run_after=self.run_after,
             )
         return self
 
