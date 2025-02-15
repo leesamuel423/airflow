@@ -32,7 +32,9 @@ from pydantic import (
 )
 
 from airflow.api_fastapi.core_api.base import BaseModel, StrictBaseModel
-from airflow.api_fastapi.core_api.datamodels.dag_versions import DagVersionResponse
+from airflow.api_fastapi.core_api.datamodels.dag_versions import (
+    DagVersionResponse,
+)
 from airflow.api_fastapi.core_api.datamodels.job import JobResponse
 from airflow.api_fastapi.core_api.datamodels.trigger import TriggerResponse
 from airflow.utils.state import TaskInstanceState
@@ -43,8 +45,15 @@ class TaskInstanceResponse(BaseModel):
 
     id: str
     task_id: str
+    task_display_name: str
     dag_id: str
+    dag_display_name: str = Field(
+        validation_alias=AliasPath("dag_run", "dag_model", "dag_display_name")
+    )
     run_id: str = Field(alias="dag_run_id")
+    run_after: datetime = Field(
+        validation_alias=AliasPath("dag_run", "run_after")
+    )
     map_index: int
     logical_date: datetime | None
     start_date: datetime | None
@@ -69,7 +78,9 @@ class TaskInstanceResponse(BaseModel):
     note: str | None
     rendered_map_index: str | None
     rendered_fields: dict = Field(
-        validation_alias=AliasPath("rendered_task_instance_fields", "rendered_fields"),
+        validation_alias=AliasPath(
+            "rendered_task_instance_fields", "rendered_fields"
+        ),
         default={},
     )
     trigger: TriggerResponse | None
@@ -180,18 +191,35 @@ class ClearTaskInstancesBody(StrictBaseModel):
     def validate_model(cls, data: Any) -> Any:
         """Validate clear task instance form."""
         if data.get("only_failed") and data.get("only_running"):
-            raise ValidationError("only_failed and only_running both are set to True")
+            raise ValidationError(
+                "only_failed and only_running both are set to True"
+            )
         if data.get("start_date") and data.get("end_date"):
             if data.get("start_date") > data.get("end_date"):
                 raise ValidationError("end_date is sooner than start_date")
-        if data.get("start_date") and data.get("end_date") and data.get("dag_run_id"):
-            raise ValidationError("Exactly one of dag_run_id or (start_date and end_date) must be provided")
+        if (
+            data.get("start_date")
+            and data.get("end_date")
+            and data.get("dag_run_id")
+        ):
+            raise ValidationError(
+                "Exactly one of dag_run_id or (start_date and end_date) must be provided"
+            )
         if data.get("start_date") and data.get("dag_run_id"):
-            raise ValidationError("Exactly one of dag_run_id or start_date must be provided")
+            raise ValidationError(
+                "Exactly one of dag_run_id or start_date must be provided"
+            )
         if data.get("end_date") and data.get("dag_run_id"):
-            raise ValidationError("Exactly one of dag_run_id or end_date must be provided")
-        if isinstance(data.get("task_ids"), list) and len(data.get("task_ids")) < 1:
-            raise ValidationError("task_ids list should have at least 1 element.")
+            raise ValidationError(
+                "Exactly one of dag_run_id or end_date must be provided"
+            )
+        if (
+            isinstance(data.get("task_ids"), list)
+            and len(data.get("task_ids")) < 1
+        ):
+            raise ValidationError(
+                "task_ids list should have at least 1 element."
+            )
         return data
 
 
@@ -211,7 +239,11 @@ class PatchTaskInstanceBody(StrictBaseModel):
         """Validate new_state."""
         valid_states = [
             vs.name.lower()
-            for vs in (TaskInstanceState.SUCCESS, TaskInstanceState.FAILED, TaskInstanceState.SKIPPED)
+            for vs in (
+                TaskInstanceState.SUCCESS,
+                TaskInstanceState.FAILED,
+                TaskInstanceState.SKIPPED,
+            )
         ]
         if ns is None:
             raise ValueError("'new_state' should not be empty")
