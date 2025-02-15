@@ -22,11 +22,19 @@ from collections import abc
 from datetime import datetime
 from typing import Any
 
-from pydantic import computed_field, field_validator, model_validator
+from pydantic import (
+    AliasPath,
+    Field,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 
 from airflow.api_fastapi.common.types import TimeDeltaWithValidation
 from airflow.api_fastapi.core_api.base import BaseModel
-from airflow.serialization.serialized_objects import encode_priority_weight_strategy
+from airflow.serialization.serialized_objects import (
+    encode_priority_weight_strategy,
+)
 from airflow.task.priority_strategy import PriorityWeightStrategy
 
 
@@ -49,7 +57,9 @@ class TaskResponse(BaseModel):
     """Task serializer for responses."""
 
     task_id: str | None
-    task_display_name: str | None
+    task_display_name: str | None = Field(
+        validation_alias=AliasPath("task", "task_display_name")
+    )
     owner: str | None
     start_date: datetime | None
     end_date: datetime | None
@@ -78,12 +88,16 @@ class TaskResponse(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def validate_model(cls, task: Any) -> Any:
-        task.__dict__.update({"class_ref": _get_class_ref(task), "is_mapped": task.is_mapped})
+        task.__dict__.update(
+            {"class_ref": _get_class_ref(task), "is_mapped": task.is_mapped}
+        )
         return task
 
     @field_validator("weight_rule", mode="before")
     @classmethod
-    def validate_weight_rule(cls, wr: str | PriorityWeightStrategy | None) -> str | None:
+    def validate_weight_rule(
+        cls, wr: str | PriorityWeightStrategy | None
+    ) -> str | None:
         """Validate the weight_rule property."""
         if wr is None:
             return None
@@ -97,7 +111,10 @@ class TaskResponse(BaseModel):
         """Convert params attribute to dict representation."""
         if params is None:
             return None
-        return {param_name: param_val.dump() for param_name, param_val in params.items()}
+        return {
+            param_name: param_val.dump()
+            for param_name, param_val in params.items()
+        }
 
     # Mypy issue https://github.com/python/mypy/issues/1362
     @computed_field  # type: ignore[misc]
